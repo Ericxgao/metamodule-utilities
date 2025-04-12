@@ -1,7 +1,7 @@
 #include "plugin.hpp"
 
 // UI Layout constants
-struct BlankLayout {
+struct NormalLayout {
     static constexpr float startY = 30.0f;          // Starting Y position for controls
     static constexpr float rowSpacing = 60.0f;      // Vertical spacing between rows
     static constexpr float switchOffset = 30.0f;     // Vertical offset for switches below ports
@@ -15,7 +15,7 @@ struct BlankLayout {
     static constexpr float textYOffset = -3.0f;      // Fine adjustment for text Y positioning
 };
 
-struct BlankModule : Module
+struct NormalModule : Module
 {
     enum InputIds {
         INPUT_1,
@@ -68,7 +68,7 @@ struct BlankModule : Module
         NUM_LIGHTS
     };
 
-    BlankModule()
+    NormalModule()
     {
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 
@@ -137,12 +137,12 @@ struct BlankModule : Module
 
 };
 
-struct BlankModuleWidget : ModuleWidget
+struct NormalModuleWidget : ModuleWidget
 {
-    BlankModuleWidget(BlankModule* module)
+    NormalModuleWidget(NormalModule* module)
     {
         setModule(module);
-        setPanel(createPanel(asset::plugin(pluginInstance, "res/Blank.svg"), asset::plugin(pluginInstance, "res/Blank-dark.svg")));
+        setPanel(createPanel(asset::plugin(pluginInstance, "res/Normal.svg"), asset::plugin(pluginInstance, "res/Normal-dark.svg")));
 
         // Add standard rack screws
         addChild(createWidget<ThemedScrew>(Vec(RACK_GRID_WIDTH, 0)));
@@ -155,49 +155,49 @@ struct BlankModuleWidget : ModuleWidget
 
         for (int i = 0; i < 6; i++) {
             addParam(createParamCentered<RoundLargeBlackKnob>(
-                Vec(knobX + BlankLayout::knobXOffset,
-                    BlankLayout::startY + i * BlankLayout::rowSpacing),
-                module, BlankModule::ATTENUATION_KNOB1_PARAM + i));
+                Vec(knobX + NormalLayout::knobXOffset,
+                    NormalLayout::startY + i * NormalLayout::rowSpacing),
+                module, NormalModule::ATTENUATION_KNOB1_PARAM + i));
         }
 
         // Add switches in a column between knobs and inputs
         for (int i = 0; i < 6; i++) {
             addParam(createParamCentered<CKSS>(
-                Vec(knobX + BlankLayout::leftSwitchXOffset,
-                    BlankLayout::startY + i * BlankLayout::rowSpacing),
-                module, BlankModule::SWITCH1_RANGE_PARAM + i));
+                Vec(knobX + NormalLayout::leftSwitchXOffset,
+                    NormalLayout::startY + i * NormalLayout::rowSpacing),
+                module, NormalModule::SWITCH1_RANGE_PARAM + i));
         }
 
         // Add switches in a column between knobs and outputs
         for (int i = 0; i < 6; i++) {
             addParam(createParamCentered<CKSS>(
-                Vec(knobX + BlankLayout::rightSwitchXOffset,
-                    BlankLayout::startY + i * BlankLayout::rowSpacing),
-                module, BlankModule::SWITCH1_BIPOLAR_PARAM + i));
+                Vec(knobX + NormalLayout::rightSwitchXOffset,
+                    NormalLayout::startY + i * NormalLayout::rowSpacing),
+                module, NormalModule::SWITCH1_BIPOLAR_PARAM + i));
         }
 
         // Add input ports
-        for (int i = 0; i < BlankModule::NUM_INPUTS; i++) {
+        for (int i = 0; i < NormalModule::NUM_INPUTS; i++) {
             addInput(createInputCentered<PJ301MPort>(
-                Vec(knobX + BlankLayout::inputXOffset,
-                    BlankLayout::startY + i * BlankLayout::rowSpacing),
-                module, BlankModule::INPUT_1 + i));
+                Vec(knobX + NormalLayout::inputXOffset,
+                    NormalLayout::startY + i * NormalLayout::rowSpacing),
+                module, NormalModule::INPUT_1 + i));
         }
 
         // Add output ports
-        for (int i = 0; i < BlankModule::NUM_OUTPUTS; i++) {
+        for (int i = 0; i < NormalModule::NUM_OUTPUTS; i++) {
             addOutput(createOutputCentered<PJ301MPort>(
-                Vec(knobX + BlankLayout::outputXOffset,
-                    BlankLayout::startY + i * BlankLayout::rowSpacing),
-                module, BlankModule::OUTPUT_1 + i));
+                Vec(knobX + NormalLayout::outputXOffset,
+                    NormalLayout::startY + i * NormalLayout::rowSpacing),
+                module, NormalModule::OUTPUT_1 + i));
         }
 
         // Add switches underneath output ports
         for (int i = 0; i < 6; i++) {
             addParam(createParamCentered<CKSS>(
-                Vec(knobX + BlankLayout::outputXOffset,
-                    BlankLayout::startY + i * BlankLayout::rowSpacing + BlankLayout::switchOffset),
-                module, BlankModule::SWITCH1_MODE_PARAM + i));
+                Vec(knobX + NormalLayout::outputXOffset,
+                    NormalLayout::startY + i * NormalLayout::rowSpacing + NormalLayout::switchOffset),
+                module, NormalModule::SWITCH1_MODE_PARAM + i));
         }
     }
 
@@ -217,24 +217,24 @@ struct BlankModuleWidget : ModuleWidget
 
             // Text above switches
             nvgText(args.vg,
-                knobX + BlankLayout::leftSwitchXOffset,
-                BlankLayout::startY + i * BlankLayout::rowSpacing - BlankLayout::textOffset + BlankLayout::textYOffset,
+                knobX + NormalLayout::leftSwitchXOffset,
+                NormalLayout::startY + i * NormalLayout::rowSpacing - NormalLayout::textOffset + NormalLayout::textYOffset,
                 "10V", NULL);
 
             nvgText(args.vg,
-                knobX + BlankLayout::rightSwitchXOffset,
-                BlankLayout::startY + i * BlankLayout::rowSpacing - BlankLayout::textOffset + BlankLayout::textYOffset,
+                knobX + NormalLayout::rightSwitchXOffset,
+                NormalLayout::startY + i * NormalLayout::rowSpacing - NormalLayout::textOffset + NormalLayout::textYOffset,
                 "UNI", NULL);
             // Text below switches
             nvgText(args.vg,
-                knobX + BlankLayout::leftSwitchXOffset,
-                BlankLayout::startY + i * BlankLayout::rowSpacing + BlankLayout::textOffset + BlankLayout::textYOffset,
+                knobX + NormalLayout::leftSwitchXOffset,
+                NormalLayout::startY + i * NormalLayout::rowSpacing + NormalLayout::textOffset + NormalLayout::textYOffset,
                 "5V", NULL);
 
             // Text for right switch
             nvgText(args.vg,
-                knobX + BlankLayout::rightSwitchXOffset,
-                BlankLayout::startY + i * BlankLayout::rowSpacing + BlankLayout::textOffset + BlankLayout::textYOffset,
+                knobX + NormalLayout::rightSwitchXOffset,
+                NormalLayout::startY + i * NormalLayout::rowSpacing + NormalLayout::textOffset + NormalLayout::textYOffset,
                 "BI", NULL);
         }
 
@@ -251,4 +251,4 @@ struct BlankModuleWidget : ModuleWidget
     //}
 };
 
-Model* modelBlank = createModel<BlankModule, BlankModuleWidget>("blank");
+Model* modelNormal = createModel<NormalModule, NormalModuleWidget>("Normal");
