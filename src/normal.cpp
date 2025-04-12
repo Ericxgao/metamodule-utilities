@@ -1,4 +1,5 @@
 #include "plugin.hpp"
+#include "rack.hpp"
 
 // UI Layout constants
 struct NormalLayout {
@@ -46,12 +47,6 @@ struct NormalModule : Module
         SWITCH4_BIPOLAR_PARAM,
         SWITCH5_BIPOLAR_PARAM,
         SWITCH6_BIPOLAR_PARAM,
-        SWITCH1_MODE_PARAM,
-        SWITCH2_MODE_PARAM,
-        SWITCH3_MODE_PARAM,
-        SWITCH4_MODE_PARAM,
-        SWITCH5_MODE_PARAM,
-        SWITCH6_MODE_PARAM,
         NUM_PARAMS // last one counts how many
     };
     enum Outputs {
@@ -68,6 +63,35 @@ struct NormalModule : Module
         NUM_LIGHTS
     };
 
+    // Mode setting for each channel (replaces the physical switch)
+    bool modeOffset[6] = {false, false, false, false, false, false};
+
+    json_t* dataToJson() override {
+        json_t* rootJ = json_object();
+        
+        // Save mode settings
+        json_t* modeJ = json_array();
+        for (int i = 0; i < 6; i++) {
+            json_array_append_new(modeJ, json_boolean(modeOffset[i]));
+        }
+        json_object_set_new(rootJ, "modeOffset", modeJ);
+        
+        return rootJ;
+    }
+
+    void dataFromJson(json_t* rootJ) override {
+        // Load mode settings
+        json_t* modeJ = json_object_get(rootJ, "modeOffset");
+        if (modeJ) {
+            for (int i = 0; i < 6; i++) {
+                json_t* modeValJ = json_array_get(modeJ, i);
+                if (modeValJ) {
+                    modeOffset[i] = json_boolean_value(modeValJ);
+                }
+            }
+        }
+    }
+
     NormalModule()
     {
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
@@ -80,7 +104,6 @@ struct NormalModule : Module
             configParam(ATTENUATION_KNOB1_PARAM + i, 0.f, 1.f, 0.5f, "Knob " + std::to_string(i + 1));
             configParam(SWITCH1_BIPOLAR_PARAM + i, 0.f, 1.f, 0.f, "Bipolar Switch " + std::to_string(i + 1));
             configParam(SWITCH1_RANGE_PARAM + i, 0.f, 1.f, 0.f, "Range Switch " + std::to_string(i + 1));
-            configParam(SWITCH1_MODE_PARAM + i, 0.f, 1.f, 0.f, "Mode Switch " + std::to_string(i + 1));
         }
 
         for (int i = 0; i < NUM_OUTPUTS; i++) {
@@ -115,7 +138,7 @@ struct NormalModule : Module
         // Process each output
         for (int i = 0; i < NUM_OUTPUTS; i++) {
             bool bipolar = params[SWITCH1_BIPOLAR_PARAM + i].getValue() == 0.f;
-            bool shouldOffset = params[SWITCH1_MODE_PARAM + i].getValue() > 0.f;
+            bool shouldOffset = modeOffset[i];
             float knobValue = params[ATTENUATION_KNOB1_PARAM + i].getValue();
             float range = params[SWITCH1_RANGE_PARAM + i].getValue() == 0.f ? 5.f : 10.f;
             float signal = range;
@@ -134,7 +157,39 @@ struct NormalModule : Module
             outputs[i].setVoltage(signal);
         }
     }
+};
 
+struct ChannelModeItem : MenuItem {
+    NormalModule* module;
+    int channel;
+    
+    void onAction(const event::Action& e) override {
+        module->modeOffset[channel] = !module->modeOffset[channel];
+        // Don't consume the event to keep the menu open
+        e.unconsume();
+    }
+    
+    void step() override {
+        text = "Channel " + std::to_string(channel + 1) + ": " + (module->modeOffset[channel] ? "Offset" : "Attenuate");
+        rightText = CHECKMARK(module->modeOffset[channel]);
+        MenuItem::step();
+    }
+};
+
+struct NormalOutputMenuItem : MenuItem {
+    NormalModule* module;
+    int channel;
+    
+    Menu* createChildMenu() override {
+        Menu* menu = new Menu;
+        
+        ChannelModeItem* modeItem = new ChannelModeItem;
+        modeItem->module = module;
+        modeItem->channel = channel;
+        menu->addChild(modeItem);
+        
+        return menu;
+    }
 };
 
 struct NormalModuleWidget : ModuleWidget
@@ -142,7 +197,7 @@ struct NormalModuleWidget : ModuleWidget
     NormalModuleWidget(NormalModule* module)
     {
         setModule(module);
-        setPanel(createPanel(asset::plugin(pluginInstance, "res/Normal.svg"), asset::plugin(pluginInstance, "res/Normal-dark.svg")));
+        setPanel(createPanel(asset::plugin(pluginInstance, "res/normal.svg"), asset::plugin(pluginInstance, "res/normal.svg")));
 
         // Add standard rack screws
         addChild(createWidget<ThemedScrew>(Vec(RACK_GRID_WIDTH, 0)));
@@ -191,14 +246,6 @@ struct NormalModuleWidget : ModuleWidget
                     NormalLayout::startY + i * NormalLayout::rowSpacing),
                 module, NormalModule::OUTPUT_1 + i));
         }
-
-        // Add switches underneath output ports
-        for (int i = 0; i < 6; i++) {
-            addParam(createParamCentered<CKSS>(
-                Vec(knobX + NormalLayout::outputXOffset,
-                    NormalLayout::startY + i * NormalLayout::rowSpacing + NormalLayout::switchOffset),
-                module, NormalModule::SWITCH1_MODE_PARAM + i));
-        }
     }
 
     void draw(const DrawArgs& args) override {
@@ -245,10 +292,20 @@ struct NormalModuleWidget : ModuleWidget
         nvgText(args.vg, box.size.x / 2, box.size.y - 5, "NORMAL", NULL);
     }
 
-    // Add options to your module's menu here
-    //void appendContextMenu(Menu *menu) override
-    //{
-    //}
+    void appendContextMenu(Menu* menu) override {
+        NormalModule* module = dynamic_cast<NormalModule*>(this->module);
+        if (!module)
+            return;
+
+        menu->addChild(new MenuSeparator);
+
+        for (int i = 0; i < NormalModule::NUM_OUTPUTS; i++) {       
+            ChannelModeItem* modeItem = new ChannelModeItem;
+            modeItem->module = module;
+            modeItem->channel = i;
+            menu->addChild(modeItem);
+        }
+    }
 };
 
-Model* modelNormal = createModel<NormalModule, NormalModuleWidget>("Normal");
+Model* modelNormal = createModel<NormalModule, NormalModuleWidget>("normal");

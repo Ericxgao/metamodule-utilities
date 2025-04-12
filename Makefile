@@ -3,7 +3,7 @@ RACK_DIR ?= ../..
 FLAGS +=
 
 SOURCES += src/plugin.cpp
-SOURCES += src/Blank.cpp
+SOURCES += src/normal.cpp
 
 DISTRIBUTABLES += res
 # DISTRIBUTABLES += presets
